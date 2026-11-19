@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetGuard Audit — Interactive Security Scorecard & Secret Scanner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #070b14; color: #f8fafc; min-height: 100vh; padding: 32px 20px; }
+    .container { max-width: 1020px; margin: 0 auto; }
+    .hero { background: linear-gradient(135deg, rgba(16,185,129,0.16), rgba(56,189,248,0.14)); border: 1px solid rgba(16,185,129,0.35); border-radius: 16px; padding: 28px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .hero h1 { font-size: 1.75rem; margin-bottom: 6px; }
+    .hero p { color: #94a3b8; max-width: 640px; font-size: 0.92rem; }
+    .btn { background: linear-gradient(135deg, #10b981, #0ea5e9); color: #070b14; font-weight: 800; padding: 10px 18px; border-radius: 10px; text-decoration: none; border: none; cursor: pointer; font-size: 0.86rem; }
+    .card { background: #111827; border: 1px solid #23304d; border-radius: 14px; padding: 22px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.05rem; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    textarea { width: 100%; background: #0a101d; border: 1px solid #23304d; color: #e2e8f0; border-radius: 8px; padding: 12px; font-family: Consolas, monospace; font-size: 0.84rem; }
+    .grade-row { display: flex; align-items: center; gap: 18px; margin: 14px 0; }
+    .grade-box { font-size: 2.3rem; font-weight: 900; padding: 6px 20px; border-radius: 12px; border: 2px solid #10b981; color: #10b981; font-family: monospace; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #1f2937; text-align: left; }
+    th { color: #94a3b8; text-transform: uppercase; font-size: 0.72rem; }
+    .badge { padding: 2px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .crit { background: rgba(239,68,68,0.2); color: #f87171; }
+    .ok { background: rgba(16,185,129,0.2); color: #34d399; }
+    pre { background: #0a101d; border: 1px solid #23304d; padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 0.82rem; color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div>
+        <h1>🛡️ NetGuard Audit — Live Security Grader & Secret Scanner</h1>
+        <p>Audite repositórios, arquivos <code>.env</code>, certificados TLS, HTTP Security Headers (Nota A+ a F) e portas expostas sem instalar nenhuma dependência externa.</p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <a href="https://github.com/WallisonWS/netguard-audit" target="_blank" class="btn">⭐ Star on GitHub</a>
+        <a href="https://wallisonws.github.io/devsecops-toolkit/" target="_blank" class="btn" style="background:#1e293b;color:#f8fafc;border:1px solid #334155;">⚡ DevSecOps Toolkit</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔎 Scanner Instantâneo de Vazamento de Segredos (.env / Código / Logs — 100% Local)</h2>
+      <textarea id="codeInput" rows="7">DATABASE_URL=postgres://admin:Sup3rS3cretPass@10.10.0.5:5432/prod
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+GITHUB_TOKEN=ghp_1234567890abcdefghijklmnopqrstuvwxyz
+APP_ENV=production</textarea>
+      <div class="grade-row">
+        <div class="grade-box" id="gradeBox">F</div>
+        <div>
+          <div style="font-weight:700;font-size:1rem;" id="scoreText">Score: 25 / 100</div>
+          <div style="color:#94a3b8;font-size:0.84rem;" id="summaryText">Analisando padrões críticos de credenciais...</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Linha</th><th>Regra Detectada</th><th>Severidade</th><th>Amostra</th></tr></thead>
+        <tbody id="findingsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>💻 Execute a Auditoria Completa de Web/TLS, Portas e Repositórios via CLI</h2>
+      <pre>git clone https://github.com/WallisonWS/netguard-audit.git
+cd netguard-audit
+
+# 1) Auditar TLS & HTTP Security Headers + Gerar Relatório HTML Executivo (Nota A+ a F)
+python3 netguard.py audit-web https://seu-dominio.com.br --html relatorio.html
+
+# 2) Escanear Repositório Git inteiro contra vazamento de chaves e senhas
+python3 netguard.py audit-repo . --html secrets-report.html
+
+# 3) Auditoria de Portas Críticas Expostas (SSH, SMB, RDP, DBs, Redis)
+python3 netguard.py audit-ports 192.168.1.1
+
+# 4) Windows PowerShell Nativo (Zero Python)
+.\netguard.ps1 -Mode audit-web -Target "https://github.com"</pre>
+    </div>
+  </div>
+
+  <script>
+    const RULES = [
+      { name: 'AWS Access Key ID', sev: 'CRITICAL', rx: /\bAKIA[0-9A-Z]{16}\b/ },
+      { name: 'GitHub Personal Access Token', sev: 'CRITICAL', rx: /\b(?:ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,})\b/ },
+      { name: 'OpenAI / Stripe Key', sev: 'CRITICAL', rx: /\b(?:sk-[A-Za-z0-9]{20,}|sk_live_[A-Za-z0-9]{16,})\b/ },
+      { name: 'Google API Key', sev: 'HIGH', rx: /\bAIza[0-9A-Za-z\-_]{35}\b/ },
+      { name: 'Private Key Block', sev: 'CRITICAL', rx: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
+      { name: 'Database URI w/ Password', sev: 'CRITICAL', rx: /\b(?:postgres|postgresql|mysql|mongodb(?:\+srv)?|redis):\/\/[^:\s\/]+:[^@\s\/]+@[^\s]+/i },
+      { name: 'Hardcoded JWT Token', sev: 'MEDIUM', rx: /\beyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\b/ }
+    ];
+
+    function scan() {
+      const lines = document.getElementById('codeInput').value.split(/\r?\n/);
+      const hits = [];
+      lines.forEach((line, idx) => {
+        RULES.forEach(r => {
+          if (r.rx.test(line)) hits.push({ line: idx + 1, name: r.name, sev: r.sev, sample: line.slice(0, 65) });
+        });
+      });
+      const score = Math.max(0, 100 - hits.length * 25);
+      const grade = score >= 95 ? 'A+' : score >= 85 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 45 ? 'D' : 'F';
+      const color = score >= 85 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
+      const gb = document.getElementById('gradeBox');
+      gb.textContent = grade; gb.style.color = color; gb.style.borderColor = color;
+      document.getElementById('scoreText').textContent = `Security Score: ${score} / 100`;
+      document.getElementById('summaryText').textContent = hits.length ? `🚨 ${hits.length} credencial(is) crítica(s) exposta(s) detectada(s)!` : '✅ Nenhuma credencial vazada encontrada.';
+      document.getElementById('findingsBody').innerHTML = hits.length
+        ? hits.map(h => `<tr><td>L${h.line}</td><td><strong>${h.name}</strong></td><td><span class="badge crit">${h.sev}</span></td><td><code>${h.sample.replace(/</g,'&lt;')}</code></td></tr>`).join('')
+        : '<tr><td colspan="4"><span class="badge ok">PASS — Nenhum segredo exposto encontrado.</span></td></tr>';
+    }
+    document.getElementById('codeInput').addEventListener('input', scan);
+    scan();
+  </script>
+</body>
+</html>
